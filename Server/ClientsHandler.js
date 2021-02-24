@@ -2,7 +2,7 @@ let ITPpacket = require('./ITPResponse');
 let singleton = require('./Singleton');
 
 // You may need to add some delectation here
-let net = require('net')
+const net = require('net')
 
 module.exports = {
 
