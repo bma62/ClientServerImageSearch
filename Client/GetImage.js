@@ -6,8 +6,36 @@ let ITPpacket = require("./ITPRequest"); // uncomment this line after you run np
 
 // Enter your code for the client functionality here
 const yargs = require('yargs');
-console.log(yargs.array('-s')) // this captures command line option -s and what follows it
 
+const argv = yargs
+    .usage('Usage: $0 -s [serverIP:port] -q [images list separated by space] -v [version]')
+    .options({
+        's': {
+            demandOption: true,
+            default: '127.0.0.1:3000',
+            type: 'string',
+            describe: 'The server IP and port the client needs to connect to.',
+        },
+        'q': {
+            demandOption: true,
+            default: 'Swan.jpeg',
+            type: 'array',
+            describe: 'A list of image names separated by space.',
+        },
+        'v': {
+            demandOption: true,
+            default: 7,
+            type: 'number',
+            describe: 'The protocol version.',
+        }
+    })
+    .argv;
+
+const host = argv.s.split(':')[0],
+    port = argv.s.split(':')[1],
+    version = argv.v,
+    images = argv.q
+//
 // const client = new net.Socket();
 //
 // client.connect(3000, '127.0.0.1', () => {
