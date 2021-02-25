@@ -1,11 +1,13 @@
 // You may need to add some delectation here
 
+
 module.exports = {
-  init: function () {
+  init: function (version, imageArray, requestType) {
     // feel free to add function parameters as needed
     //
     // enter your code here
     //
+
   },
 
   //--------------------------

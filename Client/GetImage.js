@@ -7,6 +7,7 @@ let ITPpacket = require("./ITPRequest"); // uncomment this line after you run np
 // Enter your code for the client functionality here
 const yargs = require('yargs');
 
+// set up command line options
 const argv = yargs
     .usage('Usage: $0 -s [serverIP:port] -q [images list separated by space] -v [version]')
     .options({
@@ -32,24 +33,28 @@ const argv = yargs
     .argv;
 
 const host = argv.s.split(':')[0],
-    port = argv.s.split(':')[1],
+    port = Number(argv.s.split(':')[1]),
     version = argv.v,
-    images = argv.q
-//
-// const client = new net.Socket();
-//
-// client.connect(3000, '127.0.0.1', () => {
-//     console.log('Connected to the server.');
-//     // TODO: update this to get inputs from CLI
-//     client.write('Hi server!')
-// })
-//
-// client.on('data', (data) => {
-//     // TODO: decode the packet and open the images
-//     console.log('Received: ' + data);
-//     client.destroy(); // kill client after server's response
-// });
-//
-// client.on('close', () => {
-//     console.log('Connection closed');
-// });
+    imageArray = argv.q;
+// add error checks here
+
+ITPRequest.init(version, imageArray, 0)
+
+const client = new net.Socket();
+
+// Connect to the host and port received from command line
+client.connect(port, host, () => {
+    console.log('Connected to the server.');
+    // TODO: update this to get inputs from CLI
+    client.write('Hi server!')
+})
+
+client.on('data', (data) => {
+    // TODO: decode the packet and open the images
+    console.log('Received: ' + data);
+    client.destroy(); // kill client after server's response
+});
+
+client.on('close', () => {
+    console.log('Connection closed');
+});
