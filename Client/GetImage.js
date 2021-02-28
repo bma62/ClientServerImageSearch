@@ -40,7 +40,8 @@ const host = argv.s.split(':')[0],
 // add error checks here
 
 ITPpacket.init(version, imageArray, requestType);
-ITPpacket.getBytePacket();
+console.log(ITPpacket.getBytePacket());
+console.log(ITPpacket.getBitPacket());
 
 const client = new net.Socket();
 

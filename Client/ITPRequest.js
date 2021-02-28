@@ -17,29 +17,53 @@ module.exports = {
       imageTypeArray.push(item.split('.')[1]);
     });
 
+    // DEBUG
+    // console.log(imageNameArray);
+    // console.log(fileNameSize);
+    // console.log(imageTypeArray);
+    // console.log(version);
+
     // The packet length in bytes
     let packetLength = 4 + fileNameSize + 2 * imageNameArray.length;
-    packet = Buffer.alloc(packetLength,null, 'binary');
+    packet = Buffer.alloc(packetLength, undefined, 'hex');
 
     // convert version from integer to binary
-    let v = version.toString(2);
-    if (v.length < 3) {
-      v.padStart(3, '0');
-    }
-    else if(v.length > 3){
-      throw new Error('Version Error!');
-    }
+    let v = int2bin(version);
+    v = padStringToLength(v, 3, 'Version not support!');
 
     let ic = imageNameArray.length.toString(2);
-    if (ic.length < 5) {
-      ic.padStart(5, '0');
+    ic = padStringToLength(ic, 5, 'Image count exceeds 31!')
+
+    packet.write(bin2hex(v+ic), 0, 1, 'hex'); // first byte is V and IC
+    packet.write('0000', 1, 2, 'hex'); // reserved 2 bytes
+
+    // Last byte in header is the request type
+    if (requestType === 0) {
+      packet.write('00', 3, 1, 'hex');
     }
-    else if(ic.length > 5){
-      throw new Error('Image Count Exceeds 31!');
+    else {
+      throw new Error('Request type not supported!');
     }
 
-    packetLength[0] = Buffer.from(bin2hex(v+ic), "hex");
+    let bufferIndexOffset = 4;
+    imageNameArray.forEach((element, i) => {
+      let it = int2bin(getImageType(imageTypeArray[i]));
+      it = it.padStart(4, '0');
+      let fileNameSize = int2bin(element.length);
+      fileNameSize = padStringToLength(fileNameSize, 12, 'File name too long!');
 
+      // Convert the 2 byte payload header to buffer and copy into packet
+      let payloadHeader = Buffer.from(bin2hex(it + fileNameSize), 'hex');
+      payloadHeader.copy(packet, bufferIndexOffset);
+
+      bufferIndexOffset = bufferIndexOffset + 2;
+
+      // Load file name into packet and move on to next image
+      let payload = Buffer.from(element);
+      payload.copy(packet, bufferIndexOffset);
+
+      bufferIndexOffset = bufferIndexOffset + element.length;
+    })
   },
 
   //--------------------------
@@ -59,7 +83,8 @@ module.exports = {
     // return "this should be a correct packet";
     let packetBits = '';
     packet.forEach( byte => {
-      packetBits += hex2bin(byte.toString('hex'));
+      packetBits += padStringToLength(byte.toString(2), 8, 'Error converting packet to bits');
+      packetBits += ' ';
     });
 
     return packetBits;
@@ -73,4 +98,40 @@ function hex2bin(hex) {
 
 function bin2hex(bin) {
   return parseInt(bin, 2).toString(16);
+}
+
+function int2bin(int) {
+  return int.toString(2);
+}
+
+function padStringToLength(str, targetLength, errorMsg) {
+  if (str.length < targetLength) {
+    return str.padStart(targetLength, '0');
+  }
+  else if (str.length === targetLength) {
+    return str;
+  }
+  else {
+    throw new Error(errorMsg);
+  }
+}
+
+function getImageType(extension) {
+  let type = extension.toLowerCase();
+  switch (type) {
+    case 'bmp':
+      return 1;
+    case 'jpeg':
+      return 2;
+    case 'gif':
+      return 3;
+    case 'png':
+      return 4;
+    case 'tiff':
+      return 5;
+    case 'raw':
+      return 15;
+    default:
+      throw new Error('Image type not supported!');
+  }
 }
