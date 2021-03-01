@@ -40,24 +40,23 @@ const host = argv.s.split(':')[0],
 // add error checks here
 
 ITPpacket.init(version, imageArray, requestType);
-console.log(ITPpacket.getBytePacket());
-console.log(ITPpacket.getBitPacket());
+// console.log(ITPpacket.getBytePacket());
+// console.log(ITPpacket.getBitPacket());
 
 const client = new net.Socket();
 
 // Connect to the host and port received from command line
-// client.connect(port, host, () => {
-//     console.log('Connected to the server.');
-//     // TODO: update this to get inputs from CLI
-//     client.write('Hi server!')
-// })
-//
-// client.on('data', (data) => {
-//     // TODO: decode the packet and open the images
-//     console.log('Received: ' + data);
-//     client.destroy(); // kill client after server's response
-// });
-//
-// client.on('close', () => {
-//     console.log('Connection closed');
-// });
+client.connect(port, host, () => {
+    console.log('Connected to the server.');
+    client.write(ITPpacket.getBytePacket());
+});
+
+client.on('data', (data) => {
+    // TODO: decode the packet and open the images
+    console.log('Received: ' + data);
+    client.destroy(); // kill client after server's response
+});
+
+client.on('close', () => {
+    console.log('Connection closed');
+});

@@ -25,7 +25,7 @@ module.exports = {
 
     // The packet length in bytes
     let packetLength = 4 + fileNameSize + 2 * imageNameArray.length;
-    packet = Buffer.alloc(packetLength, undefined, 'hex');
+    packet = Buffer.alloc(packetLength);
 
     // convert version from integer to binary
     let v = int2bin(version);
@@ -84,7 +84,7 @@ module.exports = {
     let packetBits = '';
     packet.forEach( byte => {
       packetBits += padStringToLength(byte.toString(2), 8, 'Error converting packet to bits');
-      packetBits += ' ';
+      // packetBits += ' ';
     });
 
     return packetBits;
