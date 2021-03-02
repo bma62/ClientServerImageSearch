@@ -1,9 +1,10 @@
 
 // You may need to add some delectation here
+let packet;
 
 module.exports = {
 
-    init: function() { // feel free to add function parameters as needed
+    init: function(version, isFulfilled, sequenceNumber, timestamp, imageTypeArray, imageNameArray, imageArray) {
         //
         // enter your code here
         //
@@ -14,7 +15,7 @@ module.exports = {
     //--------------------------
     getPacket: function() {
         // enter your code here
-        return "this should be a correct packet";
+        return packet;
     }
 };
 

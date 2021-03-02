@@ -1,7 +1,7 @@
 
 // Some code need to be added here, that are common for the module
 
-let timer;
+let timer, sequenceNumber;
 
 function incrementTimer() {
     // reset timer after reaching 2^32
@@ -18,6 +18,8 @@ module.exports = {
         timer = Math.floor((Math.random() * 999) + 1);
         // increment every 10ms
         setInterval(incrementTimer, 10)
+
+        sequenceNumber = Math.floor((Math.random() * 999) + 1);
     },
 
     //--------------------------
@@ -25,7 +27,8 @@ module.exports = {
     //--------------------------
     getSequenceNumber: function() {
       // Enter your code here //
-        return "this should be a correct sequence number";
+        ++sequenceNumber;
+        return sequenceNumber;
     },
 
     //--------------------------
@@ -34,6 +37,4 @@ module.exports = {
     getTimestamp: function() {
         return timer;
     }
-
-
 };
