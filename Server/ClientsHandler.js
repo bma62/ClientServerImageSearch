@@ -20,11 +20,22 @@ module.exports = {
         let timeStamp = singleton.getTimestamp();
         console.log(`\nClient-${timeStamp} is connected at timestamp: ${timeStamp}\n`);
 
+        let requestPacket = Buffer.alloc(0);
+
         // Receive data from the socket
-        sock.on('data', (packet) => {
-            printPacket(packet);
-            decodePacket(packet, timeStamp);
-            servePacket(sock);
+        sock.on('data', (data) => {
+            requestPacket = Buffer.concat([requestPacket, data]);
+
+            // Check for the delimiter for complete packet
+            if (requestPacket.slice(-1).toString() === '\n'){
+                // Remove the delimiter
+                requestPacket = requestPacket.slice(0, -1);
+
+                // Handle packet
+                printPacket(requestPacket);
+                decodePacket(requestPacket, timeStamp);
+                servePacket(sock);
+            }
         });
 
         sock.on('end', () => {
@@ -123,6 +134,10 @@ function servePacket(sock) {
             ITPpacket.init(7, fileNameArray.length === imageCount, singleton.getSequenceNumber(),
                 singleton.getTimestamp(), fileTypeArray, fileNameArray, fileArray);
             let packet = ITPpacket.getPacket();
+
+            // Add a one-byte delimiter for client to concatenate buffer chunks
+            let delimiter = Buffer.from('\n');
+            packet = Buffer.concat([packet, delimiter])
 
             // Send to client
             sock.write(packet);

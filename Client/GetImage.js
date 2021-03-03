@@ -46,17 +46,35 @@ ITPpacket.init(version, imageArray, requestType);
 const client = new net.Socket();
 net.bufferSize = 300000;
 net.bytesRead = 300000;
+let responsePacket = Buffer.alloc(0);
 
 // Connect to the host and port received from command line
 client.connect(port, host, () => {
     console.log('Connected to the server.');
-    client.write(ITPpacket.getBytePacket());
+
+    // Add a one-byte delimiter for server to concatenate buffer chunks
+    let packet = ITPpacket.getBytePacket();
+    let delimiter = Buffer.from('\n');
+    packet = Buffer.concat([packet, delimiter])
+
+    client.write(packet);
 });
 
 client.on('data', (data) => {
+
+    // Handle the case when the packet is divided into multiple chunks when received
     // TODO: decode the packet and open the images
     console.log(`Bytes received: ${Buffer.byteLength(data)}`);
-    // client.destroy(); // kill client after server's response
+    responsePacket = Buffer.concat([responsePacket, data]);
+
+    // Check for the delimiter for complete packet
+    if (responsePacket.slice(-1).toString() === '\n'){
+        console.log('full packet received');
+        // Remove the delimiter
+        responsePacket = responsePacket.slice(0, -1);
+        console.log(Buffer.byteLength(responsePacket));
+        client.destroy(); // kill client after server's response
+    }
 });
 
 client.on('close', () => {
