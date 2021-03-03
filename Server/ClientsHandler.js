@@ -1,10 +1,10 @@
 let ITPpacket = require('./ITPResponse');
 let singleton = require('./Singleton');
-let helpers = require('./helpers')
 
 // You may need to add some delectation here
 const net = require('net');
 const fs = require('fs');
+const helpers = require('./helpers');
 
 let version, imageCount , requestType, imageTypeArray = [], imageNameArray = [],
     fileArray = [], fileNameArray = [], fileTypeArray = [];
@@ -22,11 +22,9 @@ module.exports = {
 
         // Receive data from the socket
         sock.on('data', (packet) => {
-            // TODO: update to decode the packet
             printPacket(packet);
             decodePacket(packet, timeStamp);
-            servePacket();
-            sock.write('Hi client, the server got your msg.');
+            servePacket(sock);
         });
 
         sock.on('end', () => {
@@ -71,7 +69,7 @@ function decodePacket(packet, timeStamp) {
         // First 2 bytes of payload is image type and image name size
         header = helpers.padStringToLength(helpers.int2bin(packet.readUInt16BE(bufferOffset)), 16);
         imageType = helpers.bin2int(header.substring(0, 4)); // Bit 1-4 is image type
-        imageTypeArray.push(getImageExtension(imageType)); // Convert to extension name and add to array
+        imageTypeArray.push(helpers.getImageExtension(imageType)); // Convert to extension name and add to array
         imageNameSize = helpers.bin2int(header.substring(4)); // Bit 5-16 is image name size
 
         bufferOffset = bufferOffset + 2; // Shift buffer offset to read image name
@@ -93,7 +91,7 @@ function printPacket(packet) {
 
     packet.forEach( byte => {
         // Convert each byte to binary string and pad to 8 bits
-        packetBits += padStringToLength(byte.toString(2), 8);
+        packetBits += helpers.padStringToLength(byte.toString(2), 8);
         packetBits += ' ';
         --displayColumn;
         if (displayColumn === 0) {
@@ -105,7 +103,7 @@ function printPacket(packet) {
     console.log(packetBits);
 }
 
-function servePacket() {
+function servePacket(sock) {
     if (version !== 7 || requestType !== 0){
         // TODO: Set some kind of error msg
     }
@@ -115,21 +113,20 @@ function servePacket() {
     // Check for each image
     imageNameArray.forEach( (imageName, index) => {
         // Read files asynchronously
-        promises.push(readFromFile(fileName, imageTypeArray[index]));
+        promises.push(readFromFile(imageName, imageTypeArray[index]));
     })
 
     // Wait until all promises are resolved, i.e. file-readings are all done
     Promise.all(promises)
         .then(() => {
-            console.log(fileNameArray);
-            console.log(fileArray);
-            //FORM RESPONSE PACKET
-            ITPpacket.init(7, fileArray.length === imageCount, singleton.getSequenceNumber(),
+            // Form response packet
+            ITPpacket.init(7, fileNameArray.length === imageCount, singleton.getSequenceNumber(),
                 singleton.getTimestamp(), fileTypeArray, fileNameArray, fileArray);
             let packet = ITPpacket.getPacket();
 
-            //TODO: send it over
-
+            // Send to client
+            sock.write(packet);
+            console.log(`Bytes written: ${Buffer.byteLength(packet)}`);
         })
         // err shouldn't happen though as all promises are resolved regardless whether the image is found
         .catch(err => {

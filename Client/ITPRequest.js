@@ -1,4 +1,5 @@
 // You may need to add some delectation here
+const helpers = require('./helpers')
 
 let packet;
 
@@ -28,13 +29,13 @@ module.exports = {
     packet = Buffer.alloc(packetLength);
 
     // convert version from integer to binary
-    let v = int2bin(version);
-    v = padStringToLength(v, 3, 'Version not support!');
+    let v = helpers.int2bin(version);
+    v = helpers.padStringToLength(v, 3, 'Version not support!');
 
     let ic = imageNameArray.length.toString(2);
-    ic = padStringToLength(ic, 5, 'Image count exceeds 31!')
+    ic = helpers.padStringToLength(ic, 5, 'Image count exceeds 31!')
 
-    packet.write(bin2hex(v+ic), 0, 1, 'hex'); // first byte is V and IC
+    packet.write(helpers.bin2hex(v+ic), 0, 1, 'hex'); // first byte is V and IC
     packet.write('0000', 1, 2, 'hex'); // reserved 2 bytes
 
     // Last byte in header is the request type
@@ -47,13 +48,13 @@ module.exports = {
 
     let bufferIndexOffset = 4;
     imageNameArray.forEach((element, i) => {
-      let it = int2bin(getImageType(imageTypeArray[i]));
+      let it = helpers.int2bin(helpers.getImageType(imageTypeArray[i]));
       it = it.padStart(4, '0');
-      let fileNameSize = int2bin(element.length);
-      fileNameSize = padStringToLength(fileNameSize, 12, 'File name too long!');
+      let fileNameSize = helpers.int2bin(element.length);
+      fileNameSize = helpers.padStringToLength(fileNameSize, 12, 'File name too long!');
 
       // Convert the 2 byte payload header to buffer and copy into packet
-      let payloadHeader = Buffer.from(bin2hex(it + fileNameSize), 'hex');
+      let payloadHeader = Buffer.from(helpers.bin2hex(it + fileNameSize), 'hex');
       payloadHeader.copy(packet, bufferIndexOffset);
 
       bufferIndexOffset = bufferIndexOffset + 2;
@@ -83,7 +84,7 @@ module.exports = {
     // return "this should be a correct packet";
     let packetBits = '';
     packet.forEach( byte => {
-      packetBits += padStringToLength(byte.toString(2), 8, 'Error converting packet to bits');
+      packetBits += helpers.padStringToLength(byte.toString(2), 8, 'Error converting packet to bits');
       // packetBits += ' ';
     });
 
@@ -92,46 +93,3 @@ module.exports = {
 };
 
 // Extra utility methods can be added here
-function hex2bin(hex) {
-  return (parseInt(hex, 16).toString(2)).padStart(8, '0');
-}
-
-function bin2hex(bin) {
-  return parseInt(bin, 2).toString(16);
-}
-
-function int2bin(int) {
-  return int.toString(2);
-}
-
-function padStringToLength(str, targetLength, errorMsg) {
-  if (str.length < targetLength) {
-    return str.padStart(targetLength, '0');
-  }
-  else if (str.length === targetLength) {
-    return str;
-  }
-  else {
-    throw new Error(errorMsg);
-  }
-}
-
-function getImageType(extension) {
-  let type = extension.toLowerCase();
-  switch (type) {
-    case 'bmp':
-      return 1;
-    case 'jpeg':
-      return 2;
-    case 'gif':
-      return 3;
-    case 'png':
-      return 4;
-    case 'tiff':
-      return 5;
-    case 'raw':
-      return 15;
-    default:
-      throw new Error('Image type not supported!');
-  }
-}

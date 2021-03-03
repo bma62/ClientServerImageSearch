@@ -44,6 +44,8 @@ ITPpacket.init(version, imageArray, requestType);
 // console.log(ITPpacket.getBitPacket());
 
 const client = new net.Socket();
+net.bufferSize = 300000;
+net.bytesRead = 300000;
 
 // Connect to the host and port received from command line
 client.connect(port, host, () => {
@@ -53,8 +55,8 @@ client.connect(port, host, () => {
 
 client.on('data', (data) => {
     // TODO: decode the packet and open the images
-    console.log('Received: ' + data);
-    client.destroy(); // kill client after server's response
+    console.log(`Bytes received: ${Buffer.byteLength(data)}`);
+    // client.destroy(); // kill client after server's response
 });
 
 client.on('close', () => {

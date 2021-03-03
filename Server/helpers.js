@@ -8,6 +8,10 @@ module.exports = {
     return parseInt(bin,2);
 },
 
+    bin2hex: function(bin) {
+        return parseInt(bin, 2).toString(16);
+    },
+
 // Pad binary strings to fixed length to avoid conversion issues between int and binary
     padStringToLength: function (str, targetLength) {
     if (str.length < targetLength) {
@@ -35,5 +39,25 @@ module.exports = {
         default:
             throw new Error(`Image type ${type} not supported!`);
     }
-}
+},
+
+    getImageType: function(extension) {
+        let type = extension.toLowerCase();
+        switch (type) {
+            case 'bmp':
+                return 1;
+            case 'jpeg':
+                return 2;
+            case 'gif':
+                return 3;
+            case 'png':
+                return 4;
+            case 'tiff':
+                return 5;
+            case 'raw':
+                return 15;
+            default:
+                throw new Error('Image type not supported!');
+        }
+    }
 };
