@@ -4,7 +4,7 @@
   "description": "",
   "main": "../Client/GetImage.js",
   "dependencies": {
-    "open": "^7.4.0",
+    "open": "^7.4.2",
     "yargs": "^16.2.0"
   },
   "author": "Boyi Ma",

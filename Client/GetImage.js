@@ -1,16 +1,14 @@
-let net = require("net");
-let fs = require("fs");
-let open = require("open");
+const net = require('net'),
+    fs = require('fs'),
+    open = require('open'),
+    yargs = require('yargs/yargs');
 
-let ITPpacket = require("./ITPRequest"); // uncomment this line after you run npm install command
+const ITPpacket = require('./ITPRequest'),
+    helpers = require('./helpers');
 
-// Enter your code for the client functionality here
-const yargs = require('yargs');
-const helpers = require('./helpers');
-
-// set up command line options
+// Set up command line options
 const argv = yargs
-    .usage('Usage: $0 -s [serverIP:port] -q [images list separated by space] -v [version]')
+    .usage('Usage: $0 -s [Server IP:Port] -q [List of images separated by space] -v [Version]')
     .options({
         's': {
             demandOption: true,
@@ -33,12 +31,12 @@ const argv = yargs
     })
     .argv;
 
+// Read command line inputs in
 const host = argv.s.split(':')[0],
     port = Number(argv.s.split(':')[1]),
     version = argv.v,
     imageArray = argv.q,
     requestType = 0;
-// add error checks here
 
 ITPpacket.init(version, imageArray, requestType);
 
@@ -47,26 +45,26 @@ net.bufferSize = 300000;
 net.bytesRead = 300000;
 let responsePacket = Buffer.alloc(0);
 
-// Connect to the host and port received from command line
+// Connect to the designated host and port
 client.connect(port, host, () => {
     console.log('Connected to the server.');
 
-    // Add a one-byte delimiter for server to concatenate buffer chunks
-    let packet = ITPpacket.getBytePacket();
-    let delimiter = Buffer.from('\n');
-    packet = Buffer.concat([packet, delimiter])
+    // Send packet through and add a one-byte delimiter for server to concatenate buffer chunks
+    let packet = ITPpacket.getBytePacket(),
+        delimiter = Buffer.from('\n');
 
+    packet = Buffer.concat([packet, delimiter]);
     client.write(packet);
 });
 
 client.on('data', (data) => {
 
-    // Handle the case when the packet is divided into multiple chunks when received
+    // Concatenate received data in case the packet is divided into multiple chunks
     responsePacket = Buffer.concat([responsePacket, data]);
 
     // Check for the delimiter for complete packet
     if (responsePacket.slice(-1).toString() === '\n'){
-        console.log('full packet received');
+        // console.log('full packet received');
         // Remove the delimiter
         responsePacket = responsePacket.slice(0, -1);
 
@@ -75,10 +73,12 @@ client.on('data', (data) => {
     }
 });
 
+// Socket half-closed
 client.on('end', () => {
-    console.log('\nDisconnected from the server.')
-})
+    console.log('\nDisconnected from the server.');
+});
 
+// Socket fully closed
 client.on('close', () => {
     console.log('Connection closed.');
 });
@@ -86,13 +86,17 @@ client.on('close', () => {
 function printHeader(packet) {
     console.log('ITP packet header received:');
 
+    // Display 4 bytes in a row
     let displayColumn = 4, packetBits = '';
 
+    // The header is the first 8 bytes of the packet
     for (let i = 0; i < 8; i++){
-        // Convert each byte to binary string and pad to 8 bits
+
+        // Convert each byte to binary string and pad to 8 bits for display
         packetBits += helpers.padStringToLength(packet[i].toString(2), 8);
         packetBits += ' ';
         --displayColumn;
+
         if (displayColumn === 0) {
             packetBits += '\n';
             displayColumn = 4;
@@ -103,13 +107,14 @@ function printHeader(packet) {
 }
 
 function decodePacket(packet) {
-    console.log(`Server sent:`);
+    console.log('Server sent:');
 
-    // First 4 bytes is the header
+    // Read first 4 bytes of the header, convert to binary string, and pad to 32-bit length
     let bufferOffset = 0;
     let header = helpers.padStringToLength(helpers.int2bin(packet.readUInt32BE(bufferOffset)), 32);
     bufferOffset = bufferOffset + 4;
 
+    // First 3 bits is the version
     let version = helpers.bin2int(header.substring(0, 3));
     console.log(`\t--ITP version: ${version}`);
 
@@ -153,15 +158,22 @@ function decodePacket(packet) {
     console.log(`\t--Timestamp: ${timestamp}`);
 
     // Payload section
-    let imageType = '', fileNameSize = 0, imageSize = 0, fileName = '', promises = [];
+    let imageType = '',
+        fileNameSize = 0,
+        imageSize = 0,
+        fileName = '',
+        promises = [];
+
+    // Repeat payload section reading for each image
     for (let i = 0; i < imageCount; i++) {
+
         header = helpers.padStringToLength(helpers.int2bin(packet.readUInt16BE(bufferOffset)), 16);
         bufferOffset = bufferOffset + 2;
 
         imageType = helpers.bin2int(header.substring(0, 4));
         imageType = helpers.getImageExtension(imageType);
-
         fileNameSize = helpers.bin2int(header.substring(4));
+
         imageSize = packet.readUInt16BE(bufferOffset);
         bufferOffset = bufferOffset + 2;
 
@@ -171,17 +183,21 @@ function decodePacket(packet) {
         let imageData = Buffer.from(packet.slice(bufferOffset, bufferOffset + imageSize));
         bufferOffset = bufferOffset + imageSize;
 
+        // Write the image data to file asynchronously
         promises.push(writeToFile(fileName, imageType, imageData));
     }
 
     // Wait until all writes are done, then open them
     Promise.all(promises)
         .then((fileNames) => {
+
+            // Clear the promises array and reuse for opening the files asynchronously
             promises = [];
             fileNames.forEach( fileName => {
                 promises.push(open(fileName));
             })
 
+            // Wait for all files to be opened
             Promise.all(promises)
                 .then( ()=>{
                     // All files are open, close the connection
@@ -191,19 +207,20 @@ function decodePacket(packet) {
                     console.log(err);
                 })
         })
-
         .catch(err => {
             console.log(err);
         })
 }
 
+// A function to write to file asynchronously
 function writeToFile(fileName, fileExtension, data) {
     return new Promise((resolve, reject) => {
+
         let file = `${fileName}.${fileExtension}`;
 
         fs.writeFile(file, data, (err) => {
             if (err) {
-                // Write error
+                // Report if there's write error
                 reject(err);
             }
             else {
