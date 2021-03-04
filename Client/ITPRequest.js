@@ -1,7 +1,7 @@
 // You may need to add some delectation here
 const helpers = require('./helpers')
 
-let packet;
+let packet = Buffer.alloc(0);
 
 module.exports = {
   init: function (version, imageArray, requestType) {
@@ -17,12 +17,6 @@ module.exports = {
       fileNameSize += item.split('.')[0].length;
       imageTypeArray.push(item.split('.')[1]);
     });
-
-    // DEBUG
-    // console.log(imageNameArray);
-    // console.log(fileNameSize);
-    // console.log(imageTypeArray);
-    // console.log(version);
 
     // The packet length in bytes
     let packetLength = 4 + fileNameSize + 2 * imageNameArray.length;

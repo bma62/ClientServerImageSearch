@@ -9,6 +9,10 @@ module.exports = {
     return parseInt(bin, 2).toString(16);
 },
 
+    bin2int: function (bin) {
+        return parseInt(bin,2);
+    },
+
     int2bin: function(int) {
     return int.toString(2);
 },
@@ -43,5 +47,24 @@ module.exports = {
         default:
             throw new Error('Image type not supported!');
     }
-}
+},
+
+    getImageExtension: function (type) {
+        switch (type) {
+            case 1:
+                return 'bmp';
+            case 2:
+                return 'jpeg';
+            case 3:
+                return 'gif';
+            case 4:
+                return 'png';
+            case 5:
+                return 'tiff';
+            case 15:
+                return 'raw';
+            default:
+                throw new Error(`Image type ${type} not supported!`);
+        }
+    }
 };

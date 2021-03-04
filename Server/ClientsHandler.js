@@ -38,7 +38,7 @@ module.exports = {
             }
         });
 
-        sock.on('end', () => {
+        sock.on('close', () => {
             console.log(`\nClient-${timeStamp} closed the connection.\n`);
         });
 
@@ -47,6 +47,25 @@ module.exports = {
         });
     }
 };
+
+function printPacket(packet) {
+    console.log('ITP packet received:');
+
+    let displayColumn = 4, packetBits = '';
+
+    packet.forEach( byte => {
+        // Convert each byte to binary string and pad to 8 bits
+        packetBits += helpers.padStringToLength(byte.toString(2), 8);
+        packetBits += ' ';
+        --displayColumn;
+        if (displayColumn === 0) {
+            packetBits += '\n';
+            displayColumn = 4;
+        }
+    });
+
+    console.log(packetBits);
+}
 
 function decodePacket(packet, timeStamp) {
     console.log(`\nClient-${timeStamp} requests:`);
@@ -95,25 +114,6 @@ function decodePacket(packet, timeStamp) {
     console.log(`\t--Image file name(s): ${imageNameArray.toString()}`);
 }
 
-function printPacket(packet) {
-    console.log('ITP packet received:');
-
-    let displayColumn = 4, packetBits = '';
-
-    packet.forEach( byte => {
-        // Convert each byte to binary string and pad to 8 bits
-        packetBits += helpers.padStringToLength(byte.toString(2), 8);
-        packetBits += ' ';
-        --displayColumn;
-        if (displayColumn === 0) {
-            packetBits += '\n';
-            displayColumn = 4;
-        }
-    });
-
-    console.log(packetBits);
-}
-
 function servePacket(sock) {
     if (version !== 7 || requestType !== 0){
         // TODO: Set some kind of error msg
@@ -141,7 +141,13 @@ function servePacket(sock) {
 
             // Send to client
             sock.write(packet);
-            console.log(`Bytes written: ${Buffer.byteLength(packet)}`);
+
+            // TODO: make this tidier
+            fileNameArray = [];
+            imageTypeArray = [];
+            imageNameArray = [];
+            fileArray = [];
+            fileTypeArray = [];
         })
         // err shouldn't happen though as all promises are resolved regardless whether the image is found
         .catch(err => {
