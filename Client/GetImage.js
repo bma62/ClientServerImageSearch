@@ -1,7 +1,7 @@
 const net = require('net'),
     fs = require('fs'),
     open = require('open'),
-    yargs = require('yargs/yargs');
+    yargs = require('yargs');
 
 const ITPpacket = require('./ITPRequest'),
     helpers = require('./helpers');

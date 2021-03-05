@@ -1,5 +1,5 @@
 
-// Helper functions used throughout the problems
+// Helper functions used throughout the program
 module.exports = {
 
     // Convert binary string to hexadecimal

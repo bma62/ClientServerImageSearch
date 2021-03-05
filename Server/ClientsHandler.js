@@ -1,22 +1,15 @@
-let ITPpacket = require('./ITPResponse');
-let singleton = require('./Singleton');
 
-// You may need to add some delectation here
-const net = require('net');
-const fs = require('fs');
-const helpers = require('./helpers');
+const net = require('net'),
+    fs = require('fs');
 
-let version, imageCount , requestType, imageTypeArray = [], imageNameArray = [],
-    fileArray = [], fileNameArray = [], fileTypeArray = [];
+const ITPpacket = require('./ITPResponse'),
+    singleton = require('./Singleton'),
+    helpers = require('./helpers');
 
 module.exports = {
 
     handleClientJoining: function (sock) {
-        //
-        // Enter your code here
-        //
-        // you may need to develop some helper functions
-        // that are defined outside this export block
+
         let timeStamp = singleton.getTimestamp();
         console.log(`\nClient-${timeStamp} is connected at timestamp: ${timeStamp}\n`);
 
@@ -24,6 +17,8 @@ module.exports = {
 
         // Receive data from the socket
         sock.on('data', (data) => {
+
+            // Concatenate data in case the packet is divided into multiple chunks
             requestPacket = Buffer.concat([requestPacket, data]);
 
             // Check for the delimiter for complete packet
@@ -67,6 +62,9 @@ function printPacket(packet) {
     console.log(packetBits);
 }
 
+let imageCount = 0, imageTypeArray = [], imageNameArray = [],
+    fileArray = [], fileNameArray = [], fileTypeArray = [];
+
 function decodePacket(packet, timeStamp) {
     console.log(`\nClient-${timeStamp} requests:`);
 
@@ -75,7 +73,7 @@ function decodePacket(packet, timeStamp) {
     let header = helpers.padStringToLength(helpers.int2bin(packet.readUInt8(bufferOffset)), 8);
 
     // Bit 1-3 is version
-    version = helpers.bin2int(header.substring(0, 3));
+    let version = helpers.bin2int(header.substring(0, 3));
     console.log(`\t--ITP version: ${version}`);
 
     // Bit 4-8 is image count
@@ -85,15 +83,17 @@ function decodePacket(packet, timeStamp) {
     bufferOffset = bufferOffset + 3; // Skip byte 2-3 as they are reserved and not used
 
     // 4th byte is request type
-    header = helpers.padStringToLength(helpers.int2bin(packet.readUInt8(bufferOffset)), 8);
-    requestType = helpers.bin2int(header);
+    let requestType = packet.readUInt8(bufferOffset);
     if (requestType === 0) {
         console.log(`\t--Request type: Query`);
+    }
+    else {
+        console.log(`\t--Request type: Unexpected!`);
     }
 
     // Repeat for the payload part to read image names and types
     ++bufferOffset;
-    let imageType, imageName = '', imageNameSize = 0;
+    let imageType = '', imageNameSize = 0;
     for (let i = 0; i < imageCount; i++) {
 
         // First 2 bytes of payload is image type and image name size
@@ -115,13 +115,10 @@ function decodePacket(packet, timeStamp) {
 }
 
 function servePacket(sock) {
-    if (version !== 7 || requestType !== 0){
-        // TODO: Set some kind of error msg
-    }
 
     let promises = [];
 
-    // Check for each image
+    // Check for each image if they exist
     imageNameArray.forEach( (imageName, index) => {
         // Read files asynchronously
         promises.push(readFromFile(imageName, imageTypeArray[index]));
@@ -130,7 +127,9 @@ function servePacket(sock) {
     // Wait until all promises are resolved, i.e. file-readings are all done
     Promise.all(promises)
         .then(() => {
+
             // Form response packet
+            // If the number of files found are same as total images requested, then it is fulfilled
             ITPpacket.init(7, fileNameArray.length === imageCount, singleton.getSequenceNumber(),
                 singleton.getTimestamp(), fileTypeArray, fileNameArray, fileArray);
             let packet = ITPpacket.getPacket();
@@ -142,14 +141,15 @@ function servePacket(sock) {
             // Send to client
             sock.write(packet);
 
-            // TODO: make this tidier
-            fileNameArray = [];
-            imageTypeArray = [];
+            // Clear the arrays for next client
             imageNameArray = [];
-            fileArray = [];
+            imageTypeArray = [];
+            fileNameArray = [];
             fileTypeArray = [];
+            fileArray = [];
         })
-        // err shouldn't happen though as all promises are resolved regardless whether the image is found
+
+        // Error shouldn't happen as all promises are resolved regardless whether the image is found
         .catch(err => {
             console.log(err);
         })

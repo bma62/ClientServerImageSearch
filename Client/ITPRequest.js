@@ -21,8 +21,11 @@ module.exports = {
     packet = Buffer.alloc(packetLength);
 
     // Convert version from integer to binary and pad to 3 bits
+    if (version !== 7) {
+      throw new Error('Version not supported!');
+    }
     let v = helpers.int2bin(version);
-    v = helpers.padStringToLength(v, 3, 'Version not support!');
+    v = helpers.padStringToLength(v, 3, 'Version not supported!');
 
     let ic = helpers.int2bin(imageNameArray.length);
     ic = helpers.padStringToLength(ic, 5, 'Image count exceeds 31!')
@@ -46,7 +49,7 @@ module.exports = {
 
       // Convert imageType to binary and pad to 4 bits
       let imageType = helpers.int2bin(helpers.getImageType(imageTypeArray[index]));
-      imageType = helpers.padStringToLength(imageType, '4', 'Image type not supported!');
+      imageType = helpers.padStringToLength(imageType, 4, 'Image type not supported!');
 
       let fileNameSize = helpers.int2bin(imageName.length);
       fileNameSize = helpers.padStringToLength(fileNameSize, 12, 'File name too long!');
